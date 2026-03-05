@@ -1,0 +1,264 @@
+***
+# Из предыдущего сообщения — часть 4
+print("🔄 КЛИЕНТЫ С ПОВТОРНЫМИ ЗАКАЗАМИ ПОДРЯД")
+
+# Сортируем по дате
+df['date'] = pd.to_datetime(df['date'])
+df_sorted = df.sort_values(['client', 'date'])
+
+# Добавляем предыдущий заказ (LAG)
+df_sorted['prev_date'] = df_sorted.groupby('client')['date'].shift(1)
+df_sorted['days_since_prev'] = (df_sorted['date'] - df_sorted['prev_date']).dt.days
+
+# Находим повторные заказы (в течение 30 дней)
+repeat_clients = df_sorted[df_sorted['days_since_prev'] <= 30]
+
+🔄 КЛИЕНТЫ С ПОВТОРНЫМИ ЗАКАЗАМИ ПОДРЯД
+
+# Если данных много, группировка может тормозить
+# Решение: поставь ограничение
+df_sorted = df.sort_values(['client', 'date']).head(1000)  # только 1000 строк
+
+# Ячейка 1: Создаём маленькие тестовые данные
+import pandas as pd
+import numpy as np
+
+test_data = pd.DataFrame({
+    'client': ['Анна', 'Анна', 'Петр', 'Анна', 'Петр', 'Мария'],
+    'date': ['2024-01-01', '2024-01-15', '2024-01-10', 
+             '2024-02-01', '2024-02-05', '2024-01-20'],
+    'amount': [100, 150, 200, 300, 250, 400]
+})
+
+test_data['date'] = pd.to_datetime(test_data['date'])
+print("✅ Тестовые данные готовы:")
+print(test_data)
+
+# Ячейка 2: Проверяем LAG
+test_sorted = test_data.sort_values(['client', 'date'])
+test_sorted['prev_date'] = test_sorted.groupby('client')['date'].shift(1)
+test_sorted['days_diff'] = (test_sorted['date'] - test_sorted['prev_date']).dt.days
+
+print("\n📊 Результат с LAG:")
+print(test_sorted)
+
+✅ Тестовые данные готовы:
+  client       date  amount
+0   Анна 2024-01-01     100
+1   Анна 2024-01-15     150
+2   Петр 2024-01-10     200
+3   Анна 2024-02-01     300
+4   Петр 2024-02-05     250
+5  Мария 2024-01-20     400
+
+📊 Результат с LAG:
+  client       date  amount  prev_date  days_diff
+0   Анна 2024-01-01     100        NaT        NaN
+1   Анна 2024-01-15     150 2024-01-01       14.0
+3   Анна 2024-02-01     300 2024-01-15       17.0
+5  Мария 2024-01-20     400        NaT        NaN
+2   Петр 2024-01-10     200        NaT        NaN
+4   Петр 2024-02-05     250 2024-01-10       26.0
+
+# Ячейка 3: Тот же код, но с твоими клиентами
+df = pd.read_csv('client_projects.csv')  # или как у тебя называется
+
+# Преобразуем даты
+df['date'] = pd.to_datetime(df['date'])
+
+# Сортируем
+df_sorted = df.sort_values(['client', 'date'])
+
+# Добавляем предыдущий заказ
+df_sorted['prev_date'] = df_sorted.groupby('client')['date'].shift(1)
+df_sorted['days_since_prev'] = (df_sorted['date'] - df_sorted['prev_date']).dt.days
+
+# Смотрим результат
+print("📊 Результат по клиентам:")
+print(df_sorted[['client', 'date', 'prev_date', 'days_since_prev']].head(10))
+
+📊 Результат по клиентам:
+       client       date  prev_date  days_since_prev
+19  Александр 2025-11-19        NaT              NaN
+42  Александр 2026-01-05 2025-11-19             47.0
+17  Александр 2026-01-18 2026-01-05             13.0
+49  Александр 2026-02-07 2026-01-18             20.0
+7   Александр 2026-02-10 2026-02-07              3.0
+23    Алексей 2025-12-04        NaT              NaN
+20       Анна 2025-10-09        NaT              NaN
+31       Анна 2025-11-07 2025-10-09             29.0
+46       Анна 2026-01-11 2025-11-07             65.0
+38       Анна 2026-02-17 2026-01-11             37.0
+
+# Ячейка 4: Клиенты с повторными заказами (в течение 30 дней)
+repeat_clients = df_sorted[df_sorted['days_since_prev'] <= 30]
+
+print("🔄 Клиенты с повторными заказами:")
+print(repeat_clients[['client', 'date', 'prev_date', 'days_since_prev']])
+
+🔄 Клиенты с повторными заказами:
+       client       date  prev_date  days_since_prev
+17  Александр 2026-01-18 2026-01-05             13.0
+49  Александр 2026-02-07 2026-01-18             20.0
+7   Александр 2026-02-10 2026-02-07              3.0
+31       Анна 2025-11-07 2025-10-09             29.0
+41       Анна 2026-02-19 2026-02-17              2.0
+1     Дмитрий 2025-12-15 2025-12-01             14.0
+3     Евгений 2025-10-21 2025-10-17              4.0
+32    Евгений 2025-10-22 2025-10-21              1.0
+28       Иван 2025-09-09 2025-09-02              7.0
+36       Иван 2025-09-17 2025-09-09              8.0
+13       Иван 2025-12-08 2025-12-02              6.0
+8        Иван 2026-01-06 2025-12-08             29.0
+39       Иван 2026-01-17 2026-01-06             11.0
+22      Мария 2025-10-08 2025-10-07              1.0
+6     Наталья 2025-10-20 2025-10-15              5.0
+25    Наталья 2025-10-23 2025-10-20              3.0
+14      Ольга 2025-10-27 2025-10-20              7.0
+40     Сергей 2025-11-07 2025-10-30              8.0
+18     Сергей 2026-01-11 2025-12-18             24.0
+34     Сергей 2026-01-21 2026-01-11             10.0
+44       Юлия 2025-09-28 2025-09-21              7.0
+10       Юлия 2025-10-19 2025-09-28             21.0
+
+# Ячейка 5: Топ-3 клиента по каждому типу проектов
+import pandas as pd
+
+# Твои данные
+df = pd.read_csv('client_projects.csv')
+
+# Считаем сумму по клиенту и типу проекта
+client_project = df.groupby(['project', 'client'])['amount'].sum().reset_index()
+
+# Добавляем ранг внутри каждого типа проекта
+client_project['rank'] = client_project.groupby('project')['amount'].rank(
+    method='dense', 
+    ascending=False
+).astype(int)
+
+# Берём топ-3 по каждому типу
+top3 = client_project[client_project['rank'] <= 3].sort_values(['project', 'rank'])
+
+print("🏆 ТОП-3 КЛИЕНТА ПО КАЖДОМУ ТИПУ ПРОЕКТОВ:")
+print(top3.to_string(index=False))
+
+🏆 ТОП-3 КЛИЕНТА ПО КАЖДОМУ ТИПУ ПРОЕКТОВ:
+             project    client  amount  rank
+     A/B тест анализ    Сергей  150000     1
+     A/B тест анализ      Юлия   50000     2
+     A/B тест анализ      Иван   25000     3
+        ETL пайплайн      Юлия  100000     1
+        ETL пайплайн   Евгений   75000     2
+        ETL пайплайн      Иван   75000     2
+        ETL пайплайн Александр   35000     3
+     SQL оптимизация     Павел  100000     1
+     SQL оптимизация      Юлия  100000     1
+     SQL оптимизация Александр   35000     2
+     SQL оптимизация   Татьяна   35000     2
+       Анализ продаж   Дмитрий   50000     1
+       Анализ продаж      Юлия   50000     1
+       Анализ продаж Александр   35000     2
+       Анализ продаж      Иван   15000     3
+ Визуализация данных Александр   75000     1
+ Визуализация данных     Мария   50000     2
+ Визуализация данных   Наталья   50000     2
+ Визуализация данных   Дмитрий   25000     3
+          Дата-аудит   Евгений   75000     1
+          Дата-аудит     Павел   50000     2
+          Дата-аудит      Иван   25000     3
+     Дашборд для CEO     Мария  100000     1
+     Дашборд для CEO      Юлия   75000     2
+     Дашборд для CEO     Артём   25000     3
+     Дашборд для CEO   Евгений   25000     3
+     Дашборд для CEO      Иван   25000     3
+Отчёт для инвесторов      Анна  115000     1
+Отчёт для инвесторов     Ольга   50000     2
+Отчёт для инвесторов      Иван   15000     3
+       Парсинг сайта     Мария  100000     1
+       Парсинг сайта   Наталья  100000     1
+       Парсинг сайта   Алексей   75000     2
+       Парсинг сайта    Сергей   75000     2
+       Парсинг сайта   Татьяна   50000     3
+      Прогноз оттока Александр  100000     1
+      Прогноз оттока      Иван   75000     2
+      Прогноз оттока   Евгений   50000     3
+
+top3.to_csv('top3_clients_by_project.csv', index=False)
+print("✅ Сохранено в top3_clients_by_project.csv")
+
+✅ Сохранено в top3_clients_by_project.csv
+
+import matplotlib.pyplot as plt
+
+# Кто сколько раз в топе
+client_top_count = top3['client'].value_counts().head(10)
+
+plt.figure(figsize=(10, 6))
+plt.barh(range(len(client_top_count)), client_top_count.values)
+plt.yticks(range(len(client_top_count)), client_top_count.index)
+plt.title('Клиенты, чаще всего попадающие в топ-3')
+plt.xlabel('Количество попаданий в топ')
+plt.tight_layout()
+plt.show()
+
+[изображение графика]
+
+print("📊 График сохранён: client_analysis.png")
+
+📊 График сохранён: client_analysis.png
+
+import os
+from pathlib import Path
+
+# Текущая рабочая папка
+current_dir = Path.cwd()
+print(f"📍 Ты сейчас здесь: {current_dir}")
+
+# Что в этой папке?
+print("\n📁 Файлы в текущей папке:")
+for file in current_dir.glob('*'):
+    if file.is_file():
+        print(f"  📄 {file.name}")
+    else:
+        print(f"  📁 {file.name}/")
+
+📍 Ты сейчас здесь: C:\Users\User\Desktop\Программы
+
+📁 Файлы в текущей папке:
+
+[скрыто]
+
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+# 1. ЯВНО создаём новую фигуру (очищаем старую)
+plt.clf()  # очистить текущую фигуру
+plt.close('all')  # закрыть все старые фигуры
+
+# 2. Создаём НОВУЮ фигуру с уникальным именем
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# 3. Твой код графика
+client_top_count = top3['client'].value_counts().head(10)
+ax.barh(range(len(client_top_count)), client_top_count.values)
+ax.set_yticks(range(len(client_top_count)))
+ax.set_yticklabels(client_top_count.index)
+ax.set_title('Клиенты, чаще всего попадающие в топ-3')
+ax.set_xlabel('Количество попаданий в топ')
+ax.invert_yaxis()  # чтобы самый популярный был сверху
+
+# 4. Сохраняем с УНИКАЛЬНЫМ именем (по дате/времени)
+from datetime import datetime
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+filename = f'client_top_plot_{timestamp}.png'
+
+# Сохраняем в текущую папку
+save_path = Path.cwd() / filename
+plt.savefig(save_path, dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"✅ Новый график сохранён: {save_path}")
+
+[изображение графика]
+
+✅ Новый график сохранён: C:\Users\User\Desktop\Программы\client_top_plot_20260227_174231.png
